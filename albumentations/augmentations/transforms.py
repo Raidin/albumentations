@@ -89,6 +89,9 @@ class PadIfNeeded(DualTransform):
     Args:
         min_height (int): minimal result image height.
         min_width (int): minimal result image width.
+        min_size_ratio(float): result image size ratio by original image size.
+        ori_height (int): original image height.
+        ori_width (int): original image width
         border_mode (OpenCV flag): OpenCV border mode.
         value (int, float, list of int, lisft of float): padding value if border_mode is cv2.BORDER_CONSTANT.
         mask_value (int, float,
@@ -105,8 +108,11 @@ class PadIfNeeded(DualTransform):
 
     def __init__(
         self,
-        min_height=1024,
-        min_width=1024,
+        min_height=None,
+        min_width=None,
+        min_size_ratio=0.25,
+        ori_height=512,
+        ori_width=512,
         border_mode=cv2.BORDER_REFLECT_101,
         value=None,
         mask_value=None,
@@ -114,8 +120,12 @@ class PadIfNeeded(DualTransform):
         p=1.0,
     ):
         super(PadIfNeeded, self).__init__(always_apply, p)
+
         self.min_height = min_height
         self.min_width = min_width
+        self.min_size_ratio = min_size_ratio
+        self.ori_height = ori_height
+        self.ori_width = ori_width
         self.border_mode = border_mode
         self.value = value
         self.mask_value = mask_value
@@ -124,6 +134,11 @@ class PadIfNeeded(DualTransform):
         params = super(PadIfNeeded, self).update_params(params, **kwargs)
         rows = params["rows"]
         cols = params["cols"]
+
+        scale_ratio = random.uniform(0.0, self.min_size_ratio)
+        self.min_height = self.ori_height + int(self.ori_height * scale_ratio)
+        self.min_width = self.ori_width + int(self.ori_width * scale_ratio)
+        # print('- PadIfNeeded - CHECK SIZE  ::', self.min_height, self.min_width)
 
         if rows < self.min_height:
             h_pad_top = int((self.min_height - rows) / 2.0)
@@ -889,6 +904,7 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
         ratio=(0.75, 1.3333333333333333),
         interpolation=cv2.INTER_LINEAR,
         always_apply=False,
+        display_log=False,
         p=1.0,
     ):
 
@@ -897,6 +913,7 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
         )
         self.scale = scale
         self.ratio = ratio
+        self.display_log = display_log
 
     def get_params_dependent_on_targets(self, params):
         img = params["image"]
@@ -913,6 +930,10 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
             if 0 < w <= img.shape[1] and 0 < h <= img.shape[0]:
                 i = random.randint(0, img.shape[0] - h)
                 j = random.randint(0, img.shape[1] - w)
+
+                if self.display_log:
+                    print('Crop height::', h, 'Crop_width::', w)
+
                 return {
                     "crop_height": h,
                     "crop_width": w,
@@ -933,6 +954,9 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
             h = img.shape[0]
         i = (img.shape[0] - h) // 2
         j = (img.shape[1] - w) // 2
+        if self.display_log:
+            print('Crop height::', h, 'Crop_width::', w)
+
         return {
             "crop_height": h,
             "crop_width": w,
@@ -2148,9 +2172,9 @@ class HueSaturationValue(ImageOnlyTransform):
 
     def __init__(self, hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, always_apply=False, p=0.5):
         super(HueSaturationValue, self).__init__(always_apply, p)
-        self.hue_shift_limit = to_tuple(hue_shift_limit)
-        self.sat_shift_limit = to_tuple(sat_shift_limit)
-        self.val_shift_limit = to_tuple(val_shift_limit)
+        self.hue_shift_limit = to_tuple(hue_shift_limit, low=0)
+        self.sat_shift_limit = to_tuple(sat_shift_limit, low=0)
+        self.val_shift_limit = to_tuple(val_shift_limit, low=0)
 
     def apply(self, image, hue_shift=0, sat_shift=0, val_shift=0, **params):
         return F.shift_hsv(image, hue_shift, sat_shift, val_shift)
@@ -2308,9 +2332,9 @@ class RGBShift(ImageOnlyTransform):
 
     def __init__(self, r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, always_apply=False, p=0.5):
         super(RGBShift, self).__init__(always_apply, p)
-        self.r_shift_limit = to_tuple(r_shift_limit)
-        self.g_shift_limit = to_tuple(g_shift_limit)
-        self.b_shift_limit = to_tuple(b_shift_limit)
+        self.r_shift_limit = to_tuple(r_shift_limit, low=0)
+        self.g_shift_limit = to_tuple(g_shift_limit, low=0)
+        self.b_shift_limit = to_tuple(b_shift_limit, low=0)
 
     def apply(self, image, r_shift=0, g_shift=0, b_shift=0, **params):
         return F.shift_rgb(image, r_shift, g_shift, b_shift)
@@ -2347,8 +2371,8 @@ class RandomBrightnessContrast(ImageOnlyTransform):
 
     def __init__(self, brightness_limit=0.2, contrast_limit=0.2, brightness_by_max=True, always_apply=False, p=0.5):
         super(RandomBrightnessContrast, self).__init__(always_apply, p)
-        self.brightness_limit = to_tuple(brightness_limit)
-        self.contrast_limit = to_tuple(contrast_limit)
+        self.brightness_limit = to_tuple(brightness_limit, low=0)
+        self.contrast_limit = to_tuple(contrast_limit, low=0)
         self.brightness_by_max = brightness_by_max
 
     def apply(self, img, alpha=1.0, beta=0.0, **params):
