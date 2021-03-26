@@ -138,7 +138,6 @@ class PadIfNeeded(DualTransform):
         scale_ratio = random.uniform(0.0, self.min_size_ratio)
         self.min_height = self.ori_height + int(self.ori_height * scale_ratio)
         self.min_width = self.ori_width + int(self.ori_width * scale_ratio)
-        # print('- PadIfNeeded - CHECK SIZE  ::', self.min_height, self.min_width)
 
         if rows < self.min_height:
             h_pad_top = int((self.min_height - rows) / 2.0)
@@ -904,7 +903,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
         ratio=(0.75, 1.3333333333333333),
         interpolation=cv2.INTER_LINEAR,
         always_apply=False,
-        display_log=False,
         p=1.0,
     ):
 
@@ -913,7 +911,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
         )
         self.scale = scale
         self.ratio = ratio
-        self.display_log = display_log
 
     def get_params_dependent_on_targets(self, params):
         img = params["image"]
@@ -931,9 +928,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
                 i = random.randint(0, img.shape[0] - h)
                 j = random.randint(0, img.shape[1] - w)
 
-                if self.display_log:
-                    print('Crop height::', h, 'Crop_width::', w)
-
                 return {
                     "crop_height": h,
                     "crop_width": w,
@@ -943,6 +937,7 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
 
         # Fallback to central crop
         in_ratio = img.shape[1] / img.shape[0]
+
         if in_ratio < min(self.ratio):
             w = img.shape[1]
             h = int(round(w / min(self.ratio)))
@@ -954,8 +949,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
             h = img.shape[0]
         i = (img.shape[0] - h) // 2
         j = (img.shape[1] - w) // 2
-        if self.display_log:
-            print('Crop height::', h, 'Crop_width::', w)
 
         return {
             "crop_height": h,
@@ -2170,7 +2163,7 @@ class HueSaturationValue(ImageOnlyTransform):
         uint8, float32
     """
 
-    def __init__(self, hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, always_apply=False, p=0.5):
+    def __init__(self, hue_shift_limit=20, sat_shift_limit=20, val_shift_limit=20, always_apply=False, p=0.5):
         super(HueSaturationValue, self).__init__(always_apply, p)
         self.hue_shift_limit = to_tuple(hue_shift_limit, low=0)
         self.sat_shift_limit = to_tuple(sat_shift_limit, low=0)
@@ -2332,11 +2325,21 @@ class RGBShift(ImageOnlyTransform):
 
     def __init__(self, r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, always_apply=False, p=0.5):
         super(RGBShift, self).__init__(always_apply, p)
-        self.r_shift_limit = to_tuple(r_shift_limit, low=0)
-        self.g_shift_limit = to_tuple(g_shift_limit, low=0)
-        self.b_shift_limit = to_tuple(b_shift_limit, low=0)
+
+        self.r_shift_limit = to_tuple(r_shift_limit)
+        self.g_shift_limit = to_tuple(g_shift_limit)
+        self.b_shift_limit = to_tuple(b_shift_limit)
 
     def apply(self, image, r_shift=0, g_shift=0, b_shift=0, **params):
+
+        # Modified by jhjung, to process 16bit image(convert float[0 ~ 1])
+        print('before', r_shift, g_shift, b_shift)
+        if image.dtype != np.uint8:
+            r_shift /= 2 ** 8 - 1 # 255
+            g_shift /= 2 ** 8 - 1
+            b_shift /= 2 ** 8 - 1
+        print('after', r_shift, g_shift, b_shift)
+
         return F.shift_rgb(image, r_shift, g_shift, b_shift)
 
     def get_params(self):
