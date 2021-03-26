@@ -2333,12 +2333,10 @@ class RGBShift(ImageOnlyTransform):
     def apply(self, image, r_shift=0, g_shift=0, b_shift=0, **params):
 
         # Modified by jhjung, to process 16bit image(convert float[0 ~ 1])
-        print('before', r_shift, g_shift, b_shift)
         if image.dtype != np.uint8:
             r_shift /= 2 ** 8 - 1 # 255
             g_shift /= 2 ** 8 - 1
             b_shift /= 2 ** 8 - 1
-        print('after', r_shift, g_shift, b_shift)
 
         return F.shift_rgb(image, r_shift, g_shift, b_shift)
 
@@ -2374,8 +2372,10 @@ class RandomBrightnessContrast(ImageOnlyTransform):
 
     def __init__(self, brightness_limit=0.2, contrast_limit=0.2, brightness_by_max=True, always_apply=False, p=0.5):
         super(RandomBrightnessContrast, self).__init__(always_apply, p)
-        self.brightness_limit = to_tuple(brightness_limit, low=0)
-        self.contrast_limit = to_tuple(contrast_limit, low=0)
+        # self.brightness_limit = to_tuple(brightness_limit, low=0)
+        # self.contrast_limit = to_tuple(contrast_limit, low=0)
+        self.brightness_limit = to_tuple(brightness_limit)
+        self.contrast_limit = to_tuple(contrast_limit)
         self.brightness_by_max = brightness_by_max
 
     def apply(self, img, alpha=1.0, beta=0.0, **params):
