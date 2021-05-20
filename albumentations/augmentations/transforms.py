@@ -120,7 +120,6 @@ class PadIfNeeded(DualTransform):
         p=1.0,
     ):
         super(PadIfNeeded, self).__init__(always_apply, p)
-
         self.min_height = min_height
         self.min_width = min_width
         self.min_size_ratio = min_size_ratio
@@ -927,7 +926,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
             if 0 < w <= img.shape[1] and 0 < h <= img.shape[0]:
                 i = random.randint(0, img.shape[0] - h)
                 j = random.randint(0, img.shape[1] - w)
-
                 return {
                     "crop_height": h,
                     "crop_width": w,
@@ -937,7 +935,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
 
         # Fallback to central crop
         in_ratio = img.shape[1] / img.shape[0]
-
         if in_ratio < min(self.ratio):
             w = img.shape[1]
             h = int(round(w / min(self.ratio)))
@@ -949,7 +946,6 @@ class RandomResizedCrop(_BaseRandomSizedCrop):
             h = img.shape[0]
         i = (img.shape[0] - h) // 2
         j = (img.shape[1] - w) // 2
-
         return {
             "crop_height": h,
             "crop_width": w,
