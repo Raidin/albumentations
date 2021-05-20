@@ -1319,9 +1319,14 @@ def _brightness_contrast_adjust_non_uint(img, alpha=1, beta=0, beta_by_max=False
     if beta != 0:
         if beta_by_max:
             max_value = MAX_VALUES_BY_DTYPE[dtype]
-            img += beta * max_value
+            # if pixel value is 0, Not apply.
+            sum_value = np.where(img == 0, 0, beta * max_value)
+            img += sum_value
         else:
-            img += beta * np.mean(img)
+            # if pixel value is 0, Not apply.
+            sum_value = np.where(img == 0, 0, beta * np.mean(img))
+            img += sum_value
+
     return img
 
 
